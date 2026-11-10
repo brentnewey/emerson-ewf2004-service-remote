@@ -1,4 +1,9 @@
-<title>EWF2004A IR Service Remote</title>
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>EWF2004 Service Remote</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&family=Source+Sans+3:wght@400;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <style>
@@ -72,21 +77,23 @@ ol.steps li { padding-left: 4px; max-width: 65ch; }
 .chip.done { color: var(--wire-green); border-color: var(--wire-green); }
 .chip.open { color: var(--muted); }
 </style>
-
+</head>
+<body>
 <main class="page">
   <header>
     <div class="eyebrow">Emerson EWF2004A &middot; Funai CRT &middot; Arduino Uno</div>
-    <h1>EWF2004A IR Service Remote</h1>
-    <p class="lede">A breadboard IR transmitter for an Emerson CRT that has no remote. The goal is to open the TV's service menu and correct its picture geometry.</p>
+    <h1>EWF2004 Service Remote</h1>
+    <p class="lede">A breadboard IR transmitter that opens the service menu of an Emerson EWF2004 (Funai) CRT and adjusts its picture geometry, no original remote needed. Code, IR code files and notes: <a href="https://github.com/brentnewey/emerson-ewf2004-service-remote">GitHub repository</a>.</p>
   </header>
 
   <section>
-    <h2>Where things stand</h2>
+    <h2>What it sends</h2>
     <ul class="status">
-      <li><span class="chip done">Done</span><span>The Uno passed its checks on USB, and the firmware is already flashed and answers every command.</span></li>
-      <li><span class="chip open">Next</span><span>Build the circuit below, then run <code>selftest</code>. That is the first test of the real IR output.</span></li>
-      <li><span class="chip open">Unknown</span><span>Device code 41 comes from a sibling Funai CRT, the Symphonic ST424FF. It has not been tried on this TV yet.</span></li>
+      <li><span class="chip done">Enter</span><span>SLEEP on a service remote is a normal Emerson frame: device 41, function 63.</span></li>
+      <li><span class="chip done">Adjust</span><span>Every other key in service mode uses the <strong>factory format</strong>: the frame's second half repeats the device and function instead of their complements. The TV ignores normal frames there.</span></li>
     </ul>
+    <pre><code>normal:   {36.7k,872}&lt;1,-1|1,-3&gt;(4,-4,D:6,F:6,~D:6,~F:6,1,-39)+
+factory:  {36.7k,872}&lt;1,-1|1,-3&gt;(4,-4,D:6,F:6, D:6, F:6,1,-39)+</code></pre>
   </section>
 
   <section>
@@ -273,35 +280,21 @@ python remote.py selftest</code></pre>
 
   <section>
     <h2>Use it on the TV</h2>
-    <h3>Phase 1: prove basic control</h3>
-    <p>Point the LED at the TV's front panel from about 3 feet away, then try normal buttons:</p>
-    <pre><code>python remote.py key power
-python remote.py key vol+
-python remote.py key menu</code></pre>
-    <p>If the TV ignores these after a passing self-test, this TV may use a different device code. Search for it with Power, and press <code>h</code> when the TV turns on or off:</p>
-    <pre><code>python remote.py sweep --functions power --delay 4</code></pre>
-
-    <h3>Phase 2: find the service menu</h3>
-    <p>The sweep sends SLEEP to the other 63 device codes, trying the most likely ones first, because the service manual enters service mode with SLEEP on a service remote. One pass takes about 2 minutes.</p>
-    <pre><code>python remote.py sweep</code></pre>
+    <p>Warm the TV up for 20 minutes, then point the LED at its front panel from about 3 feet away. Check basic control first:</p>
+    <pre><code>python remote.py key vol-</code></pre>
+    <p>Then open service mode and adjust. <strong>Photograph every value before changing it.</strong></p>
     <div class="table-wrap"><table>
-      <thead><tr><th>Key</th><th>During a sweep</th></tr></thead>
+      <thead><tr><th>Command</th><th>What it does</th></tr></thead>
       <tbody>
-        <tr><td><code>p</code></td><td>Pause or resume</td></tr>
-        <tr><td><code>h</code></td><td>Something appeared. Stops and lists the last few codes sent, because the TV may lag a step behind.</td></tr>
-        <tr><td><code>q</code></td><td>Quit. Running the same command again resumes where it stopped.</td></tr>
+        <tr><td><code>python remote.py send 41 63 --frames 3</code></td><td>Enter service mode. The screen shows <code>058-0.06 271 A1</code> and a <code>2</code> in each corner.</td></tr>
+        <tr><td><code>python remote.py factory 8</code></td><td>H-P, horizontal position</td></tr>
+        <tr><td><code>python remote.py factory 9</code></td><td>V-S, vertical size. Send again for V-P, vertical position.</td></tr>
+        <tr><td><code>python remote.py factory ch+</code><br><code>python remote.py factory ch-</code></td><td>Change the selected value one step</td></tr>
       </tbody>
     </table></div>
-    <p>Re-send each listed code on its own to find the one that worked: <code>python remote.py send &lt;device&gt; &lt;function&gt;</code>. Then write it down in <code>NOTES.md</code>.</p>
-
-    <h3>Phase 3: adjust the geometry</h3>
-    <ol class="steps">
-      <li>Read the service-mode section of the <a href="https://elektrotanya.com/emerson_ewf2004.pdf/download.html">EWF2004 service manual</a>.</li>
-      <li>Photograph every original value before changing anything.</li>
-      <li>Change geometry items only, one at a time: H/V position, size, and linearity. Leave white balance and cutoff alone.</li>
-      <li>Use a test pattern from the NES, since that is the source this TV is for.</li>
-      <li>Exit service mode the way the manual describes, so the values are saved.</li>
-    </ol>
-    <div class="note"><p><strong>Never open the TV.</strong> A CRT can hold a dangerous charge even when unplugged. Every adjustment here happens through the service menu.</p></div>
+    <p>Switch the TV off and on with its own power button to save and exit. Leave the other number keys alone: in the manual they open white balance, cut-off and other non-geometry items.</p>
+    <div class="note"><p><strong>Never open the TV.</strong> A CRT can hold a dangerous charge even when unplugged. Width and corner shape are set inside the TV; leave those to someone who knows CRT safety.</p></div>
   </section>
 </main>
+</body>
+</html>

@@ -102,6 +102,7 @@ J1 showed the different frame layout.
 ## The transmitter
 
 Arduino Uno (or ESP32) with an IR LED and an optional TSOP38238 receiver.
+**Illustrated build guide with a breadboard diagram:** https://brentnewey.github.io/emerson-ewf2004-service-remote/
 
 ### Parts
 
