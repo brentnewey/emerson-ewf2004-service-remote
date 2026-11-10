@@ -1,0 +1,12 @@
+.pio/
+__pycache__/
+shots/
+host/sweep_state.json
+host/scan_run.log
+# full-size personal photos; resized copies are in docs/images
+photos/
+# not ours to redistribute; see links in README
+reference/*.pdf
+reference/Funai_NF021RD.lircd.conf
+reference/Symphonic_TV_41.csv
+uno_original_backup.hex
